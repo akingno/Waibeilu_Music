@@ -63,7 +63,7 @@
         <div class="room-layout">
           <section id="playlist-panel" class="playlist-panel">
             <div class="section-title">
-              <h2>歌单 <small id="track-count">0 首</small></h2>
+              <h2>音乐库 <small id="track-count">0 首</small></h2>
               <label class="upload-button" for="upload-input">＋ 上传音乐</label
               ><input
                 id="upload-input"
@@ -84,6 +84,23 @@
               <p id="storage-detail" class="hint"></p>
               <div id="uploads" aria-live="polite"></div>
             </div>
+            <div class="playlist-manager">
+              <label for="browse-playlist" class="hint">浏览歌单</label>
+              <div class="playlist-controls">
+                <select id="browse-playlist" aria-label="浏览歌单">
+                  <option value="">全部歌曲</option>
+                </select>
+                <button id="create-playlist">新建歌单</button>
+                <button id="rename-playlist" disabled>改名</button>
+              </div>
+              <p id="playlist-creator" class="hint"></p>
+              <div class="playlist-controls">
+                <p id="active-playlist-label" class="hint">播放范围：全部歌曲</p>
+                <button id="activate-playlist" title="当前歌曲继续播放，下次切歌使用此歌单">
+                  设为播放歌单
+                </button>
+              </div>
+            </div>
             <label class="search-field"
               ><span class="sr-only">搜索歌曲或歌手</span
               ><input
@@ -93,6 +110,16 @@
                 autocomplete="off"
               /><span>⌕</span></label
             >
+            <div class="bulk-controls">
+              <label class="select-all"
+                ><input type="checkbox" id="select-visible" /> 全选当前结果</label
+              >
+              <span id="selection-count" class="hint">已选 0 首</span>
+              <label for="target-playlist" class="sr-only">加入的目标歌单</label>
+              <select id="target-playlist" aria-label="加入的目标歌单"></select>
+              <button id="add-selected" disabled>加入歌单</button>
+              <button id="remove-selected" disabled>从当前歌单移出</button>
+            </div>
             <div id="playlist" class="playlist"></div>
           </section>
           <section id="player-panel" class="player-panel">
@@ -110,6 +137,11 @@
               <p id="play-status" class="eyebrow">READY TO LISTEN</p>
               <h2 id="current-title">选择一首开始播放</h2>
               <p id="current-artist">与朋友分享此刻</p>
+              <p id="player-playlist-name" class="hint">播放歌单：全部歌曲</p>
+            </div>
+            <div class="next-track-summary" aria-live="polite">
+              <span id="next-track-name">尚未指定下一首</span>
+              <button id="clear-next" class="quiet" hidden>取消</button>
             </div>
             <div class="seek-wrap">
               <label for="seek" class="sr-only">播放进度</label
@@ -152,12 +184,32 @@
         <h2>删除这首歌？</h2>
         <p id="delete-title"></p>
         <p class="hint">
-          所有人的歌单会同时移除它。如果正在播放，会立即停止。文件清理完成后才会释放空间。
+          这会从音乐库和所有歌单中删除歌曲。如果正在播放，会立即停止。仅移出歌单请使用批量管理。
         </p>
         <p id="delete-error" class="error" role="alert"></p>
         <div class="dialog-actions">
           <button value="cancel" id="delete-cancel" class="quiet">取消</button
           ><button type="button" id="delete-confirm" class="danger">确认删除</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="playlist-dialog">
+      <form id="playlist-form">
+        <span class="eyebrow">SHARED PLAYLIST</span>
+        <h2 id="playlist-dialog-title">创建歌单</h2>
+        <label for="playlist-name">歌单名称</label>
+        <input
+          id="playlist-name"
+          maxlength="60"
+          required
+          placeholder="例如：周末一起听"
+          autocomplete="off"
+        />
+        <p class="hint">歌单由房间成员共同管理，创建者昵称会显示在歌单中。</p>
+        <p id="playlist-error" class="error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="playlist-cancel" class="quiet">取消</button>
+          <button id="playlist-save" class="primary">保存</button>
         </div>
       </form>
     </dialog>

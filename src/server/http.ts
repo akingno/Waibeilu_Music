@@ -29,11 +29,11 @@ export function parseRange(
     throw new AppError('RANGE', 'Range not satisfiable', 416);
   return { start, end };
 }
-async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
+async function body(req: IncomingMessage, limit = 8192): Promise<Record<string, unknown>> {
   let text = '';
   for await (const chunk of req) {
     text += chunk;
-    if (text.length > 8192) throw new AppError('TOO_LARGE', '请求内容过大', 413);
+    if (text.length > limit) throw new AppError('TOO_LARGE', '请求内容过大', 413);
   }
   try {
     const v = JSON.parse(text);
@@ -117,6 +117,36 @@ export function createHandler(
         }
         if (path === '/api/tracks' && method === 'GET') {
           json({ tracks: app.tracks() });
+          return;
+        }
+        if (path === '/api/playlists' && method === 'GET') {
+          json({ playlists: app.database.playlists() });
+          return;
+        }
+        if (path === '/api/playlists' && method === 'POST') {
+          const b = await body(req);
+          const playlist = await app.createPlaylist(b.name, session);
+          gateway.notify('libraryChanged');
+          json({ playlist }, 201);
+          return;
+        }
+        const playlistMatch = /^\/api\/playlists\/([a-f0-9-]+)(\/tracks)?$/.exec(path);
+        if (playlistMatch && method === 'PATCH' && !playlistMatch[2]) {
+          const b = await body(req);
+          const playlist = await app.renamePlaylist(playlistMatch[1], b.name);
+          gateway.notify('libraryChanged');
+          json({ playlist });
+          return;
+        }
+        if (playlistMatch && method === 'POST' && playlistMatch[2]) {
+          const b = await body(req, 128 * 1024);
+          const playlist = await app.changePlaylistTracks(
+            playlistMatch[1],
+            b.operation,
+            b.trackIds,
+          );
+          gateway.notify('libraryChanged');
+          json({ playlist });
           return;
         }
         if (path === '/api/storage' && method === 'GET') {

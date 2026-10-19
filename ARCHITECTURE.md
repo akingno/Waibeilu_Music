@@ -35,7 +35,7 @@ Node.js 24+、原生 HTTP、ws、busboy、music-metadata、内置 SQLite；前�
 | src/client/main.ts | ClientApplication，事件绑定、加入、校时、刷新、上传和退出 |
 | src/client/index.html | 单页面结构与持久音频宿主 |
 | src/client/styles/*.css | tokens、layout、components，手机标签、横屏、桌面双栏 |
-| scripts/build.mjs | 构建服务端、前端、同步算法测试包 |
+| scripts/build.mjs | 构建服务端、前端、同步和播放顺序算法测试包 |
 | scripts/backup.mjs | 停机后 SQLite 一致性备份与音频复制 |
 | deploy/* | systemd 和 HTTP Nginx 配置 |
 
@@ -44,6 +44,12 @@ Node.js 24+、原生 HTTP、ws、busboy、music-metadata、内置 SQLite；前�
 登录点击先尝试解锁音频，再提交密码、保存昵称、连接 WS 和申请席位。浏览器阻止播放时提供继续收听入口。席位由会话关联，WS 控制额外检查当前连接，防止被接管的标签页继续操作。
 
 控制经 WS 验证后进入 SerialCommandQueue，RoomService 更新版本并保存恢复位置、广播。明确 play/pause，不使用服务端 toggle。随机结果由服务端选择，单曲循环由服务端统一重置时间锚点；audio.loop=false，playbackRate=1。
+
+随机模式排除最近 `min(3, 歌曲数 - 1)` 首不同歌曲，确保小歌单仍有候选；在剩余歌曲中优先选择随机命中次数最少的歌曲，同次数时等概率抽取。只有成功切歌后的随机下一首和自然结束计入次数，手动点歌、上一首和单曲循环只更新最近播放记录。回退历史与最近播放记录独立，回退不会抹掉刚听过的歌曲；新增歌曲以当前最低次数加入，删除歌曲退出计数。计数和历史保存在进程内，服务重启后重新开始，恢复的当前歌曲进入最近播放记录。
+
+RoomState 增加 `playlistId`（null 表示全部歌曲）和 `nextTrackId`（单个优先待播位置），均进入原播放快照并通过 WS 同步。`setNextTrack` 设置或取消待播，`setPlaylist` 改变全房间播放范围；`selectTrack` 可附带 `playlistId`，原有不带此字段的指令沿用当前范围。下一首与自然结束统一经过 advance，优先消费仍在范围内的待播歌曲，之后才使用原播放模式；指定待播不计入随机次数。切换播放范围后重置均衡计数；空歌单、历史回退也严格限定候选范围，不回退到全部歌曲。改变范围不打断当前歌曲。
+
+SQLite 自动新增 `playlists(id, data)` 表，JSON 保存名称、创建时昵称、时间和去重后的 trackIds；旧数据库和旧播放快照仍可直接读取。登录成员共享管理歌单，创建者由服务端会话写入。新增 `GET/POST /api/playlists`、`PATCH /api/playlists/:id`（改名）、`POST /api/playlists/:id/tracks`（operation=add/remove，trackIds 最多 1000 个）；写入沿用 Origin/CSRF 校验和共享串行队列，增删成员后通知客户端刷新，移除待播成员同时清空待播状态。全局删除及启动清理缺失文件时同步移除成员关系，单纯移出歌单不删除文件。
 
 自然结束与最后一人离开由每秒维护任务检查，并通过同一队列处理；这样无需挂在客户端 ended 事件，也没有旧曲结束定时器误触发的问题。WS 每秒推送轻量房间快照，每二十秒心跳。每十秒保存位置，异常退出可能回退少量进度。重启新 epoch 并恢复暂停。
 

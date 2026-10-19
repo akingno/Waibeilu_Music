@@ -1,4 +1,4 @@
-import type { TrackSummary, StorageUsage } from '../shared/models.js';
+import type { TrackSummary, StorageUsage, Playlist } from '../shared/models.js';
 export class RequestError extends Error {
   constructor(
     message: string,
@@ -30,6 +30,9 @@ export class ApiClient {
   }
   async tracks(): Promise<TrackSummary[]> {
     return (await this.request<{ tracks: TrackSummary[] }>('/tracks')).tracks;
+  }
+  async playlists(): Promise<Playlist[]> {
+    return (await this.request<{ playlists: Playlist[] }>('/playlists')).playlists;
   }
   storage(): Promise<StorageUsage> {
     return this.request('/storage');

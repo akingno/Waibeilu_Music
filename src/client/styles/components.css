@@ -6,6 +6,106 @@ button {
   min-height: 44px;
   padding: 8px 14px;
 }
+select,
+#playlist-name {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
+}
+select:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+.playlist-manager {
+  border-left: 2px solid var(--cyan);
+  padding: 0 0 0 14px;
+  margin: 0 0 20px;
+}
+.playlist-controls,
+.bulk-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.playlist-controls {
+  margin: 8px 0;
+}
+.playlist-controls select {
+  flex: 1 1 140px;
+  width: 140px;
+}
+.playlist-controls p {
+  flex: 1 1 160px;
+  overflow-wrap: anywhere;
+}
+.playlist-controls button,
+.bulk-controls button {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.bulk-controls {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.bulk-controls select {
+  flex: 1 1 100%;
+  width: 100%;
+  font-size: 12px;
+}
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 12px;
+}
+.track-select {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0;
+}
+.next-track-button {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px;
+  flex: 0 0 72px;
+}
+.next-track-button[aria-pressed='true'] {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+.next-track-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-left: 2px solid var(--cyan);
+  font-size: 12px;
+  color: var(--muted);
+}
+.next-track-summary span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#playlist-dialog label {
+  display: block;
+  margin: 20px 0 8px;
+}
+#playlist-name {
+  width: 100%;
+  margin-bottom: 12px;
+}
 .primary {
   background: var(--cyan);
   color: var(--bg);
@@ -464,4 +564,11 @@ dialog h2 {
   font-size: 12px;
   color: var(--cyan);
   min-height: 36px;
+}
+@media (max-width: 480px) {
+  .track-row {
+    gap: 6px;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }

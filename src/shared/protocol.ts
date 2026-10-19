@@ -1,6 +1,8 @@
 import type { PlaybackMode, RoomState } from './models.js';
 export type Action =
-  | { action: 'selectTrack'; trackId: string }
+  | { action: 'selectTrack'; trackId: string; playlistId?: string | null }
+  | { action: 'setNextTrack'; trackId: string | null }
+  | { action: 'setPlaylist'; playlistId: string | null }
   | { action: 'play' | 'pause' | 'next' | 'previous' }
   | { action: 'seek'; trackId: string; positionSeconds: number }
   | { action: 'setPlaybackMode'; playbackMode: PlaybackMode };
@@ -25,7 +27,26 @@ export function parseCommand(input: unknown): Command {
   const base = { commandId: requireString(v.commandId, 100), epoch: requireString(v.epoch, 100) };
   switch (v.action) {
     case 'selectTrack':
-      return { ...base, action: v.action, trackId: requireString(v.trackId, 100) };
+      return {
+        ...base,
+        action: v.action,
+        trackId: requireString(v.trackId, 100),
+        ...(v.playlistId === undefined
+          ? {}
+          : { playlistId: v.playlistId === null ? null : requireString(v.playlistId, 100) }),
+      };
+    case 'setNextTrack':
+      return {
+        ...base,
+        action: v.action,
+        trackId: v.trackId === null ? null : requireString(v.trackId, 100),
+      };
+    case 'setPlaylist':
+      return {
+        ...base,
+        action: v.action,
+        playlistId: v.playlistId === null ? null : requireString(v.playlistId, 100),
+      };
     case 'play':
     case 'pause':
     case 'next':

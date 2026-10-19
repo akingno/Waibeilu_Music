@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AudioPlayer, ClockEstimator, SyncController } from '../src/client/audio.js';
 import type { RoomState } from '../src/shared/models.js';
+import { ClientStore } from '../src/client/state.js';
 
 function media() {
   return {
@@ -23,6 +24,32 @@ function media() {
   };
 }
 
+test('浏览歌单与房间播放范围独立，搜索只匹配浏览歌单成员', () => {
+  const store = new ClientStore();
+  store.tracks = [
+    { id: 't1', title: '夜晚', artist: 'Alice', durationSeconds: 60 },
+    { id: 't2', title: '清晨', artist: 'Bob', durationSeconds: 60 },
+    { id: 't3', title: '午后', artist: 'Alice', durationSeconds: 60 },
+  ];
+  store.playlists = [
+    { id: 'p1', name: '一起听', creator: '朋友', createdAt: '2026-10-19', trackIds: ['t1', 't2'] },
+  ];
+  assert.equal(store.visibleTracks().length, 3);
+  store.browsePlaylistId = 'p1';
+  assert.deepEqual(
+    store.visibleTracks().map((track) => track.id),
+    ['t1', 't2'],
+  );
+  store.search = 'ALICE';
+  assert.deepEqual(
+    store.visibleTracks().map((track) => track.id),
+    ['t1'],
+  );
+  assert.equal(store.room, null, '浏览及搜索不能改变房间播放状态');
+  store.browsePlaylistId = 'missing';
+  assert.deepEqual(store.visibleTracks(), []);
+});
+
 test('五端模拟：加入和缓冲恢复用最新目标跳转，固定正常倍速', async () => {
   const now = performance.now();
   const state: RoomState = {
@@ -31,6 +58,8 @@ test('五端模拟：加入和缓冲恢复用最新目标跳转，固定正常�
     trackId: 'track',
     status: 'playing',
     playbackMode: 'repeat-one',
+    playlistId: null,
+    nextTrackId: null,
     anchorPositionSeconds: 40,
     anchorTimeMs: now + 500,
     durationSeconds: 200,
@@ -94,6 +123,8 @@ test('暂停快照和自动播放拒绝不会向房间发送副作用', async ()
     trackId: 'track',
     status: 'paused',
     playbackMode: 'shuffle',
+    playlistId: null,
+    nextTrackId: null,
     anchorPositionSeconds: 25,
     anchorTimeMs: now,
     durationSeconds: 100,

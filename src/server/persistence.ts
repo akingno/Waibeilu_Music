@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { Track, PlaybackCheckpoint } from '../shared/models.js';
+import type { Track, PlaybackCheckpoint, Playlist } from '../shared/models.js';
 export class Database {
   readonly db: DatabaseSync;
   constructor(file: string) {
@@ -8,6 +8,7 @@ export class Database {
       CREATE TABLE IF NOT EXISTS tracks (id TEXT PRIMARY KEY, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, data TEXT NOT NULL, expires INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS playlists (id TEXT PRIMARY KEY, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS reservations (id TEXT PRIMARY KEY, bytes INTEGER NOT NULL);`);
   }
   transaction<T>(work: () => T): T {
@@ -36,7 +37,34 @@ export class Database {
       .run(track.id, JSON.stringify(track));
   }
   removeTrack(id: string): void {
+    this.removeTrackFromPlaylists(id);
     this.db.prepare('DELETE FROM tracks WHERE id=?').run(id);
+  }
+  playlists(): Playlist[] {
+    return this.db
+      .prepare('SELECT data FROM playlists ORDER BY rowid')
+      .all()
+      .map((row) => JSON.parse(row.data as string));
+  }
+  playlist(id: string): Playlist | undefined {
+    const row = this.db.prepare('SELECT data FROM playlists WHERE id=?').get(id);
+    return row ? JSON.parse(row.data as string) : undefined;
+  }
+  putPlaylist(playlist: Playlist): void {
+    this.db
+      .prepare(
+        'INSERT INTO playlists VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET data=excluded.data',
+      )
+      .run(playlist.id, JSON.stringify(playlist));
+  }
+  removeTrackFromPlaylists(id: string): void {
+    for (const playlist of this.playlists()) {
+      if (playlist.trackIds.includes(id))
+        this.putPlaylist({
+          ...playlist,
+          trackIds: playlist.trackIds.filter((trackId) => trackId !== id),
+        });
+    }
   }
   setting(key: string): string | undefined {
     return this.db.prepare('SELECT value FROM settings WHERE key=?').get(key)?.value as

@@ -12,8 +12,15 @@ export interface Track {
   createdAt: string;
   status: 'ready' | 'pending-delete';
 }
-/** 歌单接口不暴露磁盘路径；行界面只显示 title、artist 与两个按钮。 */
+/** 曲库接口不暴露磁盘路径。 */
 export type TrackSummary = Pick<Track, 'id' | 'title' | 'artist' | 'durationSeconds'>;
+export interface Playlist {
+  id: string;
+  name: string;
+  creator: string;
+  createdAt: string;
+  trackIds: string[];
+}
 export interface StorageUsage {
   /** 服务端提供的总容量，按字节计。 */
   limitBytes: number;
@@ -31,6 +38,8 @@ export interface RoomState {
   trackId: string | null;
   status: PlaybackStatus;
   playbackMode: PlaybackMode;
+  playlistId: string | null;
+  nextTrackId: string | null;
   anchorPositionSeconds: number;
   anchorTimeMs: number;
   durationSeconds: number;
@@ -51,6 +60,8 @@ export interface PlaybackCheckpoint {
   trackId: string | null;
   positionSeconds: number;
   playbackMode: PlaybackMode;
+  playlistId?: string | null;
+  nextTrackId?: string | null;
   savedAt: string;
 }
 export interface Presence {

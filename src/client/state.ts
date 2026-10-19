@@ -1,4 +1,10 @@
-import type { RoomState, TrackSummary, StorageUsage, Presence } from '../shared/models.js';
+import type {
+  RoomState,
+  TrackSummary,
+  StorageUsage,
+  Presence,
+  Playlist,
+} from '../shared/models.js';
 export type RoomTab = 'playlist' | 'player';
 export interface UploadTaskView {
   id: string;
@@ -11,6 +17,10 @@ export interface UploadTaskView {
 export class ClientStore {
   room: RoomState | null = null;
   tracks: TrackSummary[] = [];
+  playlists: Playlist[] = [];
+  browsePlaylistId: string | null = null;
+  selectedTracks = new Set<string>();
+  bulkBusy = false;
   storage: StorageUsage | null = null;
   presence: Presence | null = null;
   uploads: UploadTaskView[] = [];
@@ -18,4 +28,14 @@ export class ClientStore {
   search = '';
   connected = false;
   joined = false;
+  visibleTracks(): TrackSummary[] {
+    const ids = this.browsePlaylistId
+      ? new Set(this.playlists.find((p) => p.id === this.browsePlaylistId)?.trackIds ?? [])
+      : null;
+    return this.tracks.filter(
+      (track) =>
+        (!ids || ids.has(track.id)) &&
+        `${track.title} ${track.artist}`.toLowerCase().includes(this.search.toLowerCase()),
+    );
+  }
 }

@@ -1,4 +1,4 @@
-import type { TrackSummary } from '../shared/models.js';
+import type { Playlist } from '../shared/models.js';
 import type { Action } from '../shared/protocol.js';
 import { AUDIO_FILE_ACCEPT, isSupportedAudioName, MAX_AUDIO_FILE_BYTES } from '../shared/limits.js';
 import { ApiClient, RoomConnection, requestId, RequestError } from './transport.js';
@@ -19,8 +19,15 @@ export class ClientApplication {
     (connected) => this.connectionStatus(connected),
   );
   readonly playlist = new PlaylistView(
-    (id) => this.control({ action: 'selectTrack', trackId: id }),
+    (id) =>
+      this.control({ action: 'selectTrack', trackId: id, playlistId: this.store.browsePlaylistId }),
     (track) => this.dialog.open(track),
+    (id) => this.control({ action: 'setNextTrack', trackId: id }),
+    (id, selected) => {
+      if (selected) this.store.selectedTracks.add(id);
+      else this.store.selectedTracks.delete(id);
+      this.playlist.render(this.store);
+    },
   );
   readonly player = new PlayerView();
   readonly dialog = new DeleteDialog();
@@ -32,6 +39,7 @@ export class ClientApplication {
   private refreshAgain = false;
   private probes = new Map<string, number>();
   private intervals: number[] = [];
+  private editingPlaylistId: string | null = null;
   async mount(): Promise<void> {
     element<HTMLInputElement>('upload-input').accept = AUDIO_FILE_ACCEPT;
     this.shell.tab('playlist');
@@ -51,6 +59,31 @@ export class ClientApplication {
       this.control({ action: this.store.room?.status === 'playing' ? 'pause' : 'play' });
     element('previous').onclick = () => this.control({ action: 'previous' });
     element('next').onclick = () => this.control({ action: 'next' });
+    element('clear-next').onclick = () => this.control({ action: 'setNextTrack', trackId: null });
+    element<HTMLSelectElement>('browse-playlist').onchange = (e) => {
+      this.store.browsePlaylistId = (e.target as HTMLSelectElement).value || null;
+      this.store.selectedTracks.clear();
+      this.playlist.render(this.store);
+    };
+    element('activate-playlist').onclick = () =>
+      this.control({ action: 'setPlaylist', playlistId: this.store.browsePlaylistId });
+    element('create-playlist').onclick = () => this.openPlaylistDialog();
+    element('rename-playlist').onclick = () => this.openPlaylistDialog(true);
+    element<HTMLFormElement>('playlist-form').onsubmit = (e) => {
+      e.preventDefault();
+      void this.savePlaylist();
+    };
+    element('playlist-cancel').onclick = () =>
+      element<HTMLDialogElement>('playlist-dialog').close();
+    element<HTMLInputElement>('select-visible').onchange = (e) => {
+      for (const track of this.store.visibleTracks()) {
+        if ((e.target as HTMLInputElement).checked) this.store.selectedTracks.add(track.id);
+        else this.store.selectedTracks.delete(track.id);
+      }
+      this.playlist.render(this.store);
+    };
+    element('add-selected').onclick = () => void this.changePlaylistTracks('add');
+    element('remove-selected').onclick = () => void this.changePlaylistTracks('remove');
     element('repeat-mode').onclick = () =>
       this.control({ action: 'setPlaybackMode', playbackMode: 'repeat-one' });
     element('shuffle-mode').onclick = () =>
@@ -224,7 +257,10 @@ export class ClientApplication {
         )
           return;
         {
-          const changed = this.store.room?.trackId !== m.state.trackId;
+          const changed =
+            this.store.room?.trackId !== m.state.trackId ||
+            this.store.room?.nextTrackId !== m.state.nextTrackId ||
+            this.store.room?.playlistId !== m.state.playlistId;
           this.store.room = m.state;
           this.sync.accept(m.state);
           if (changed) this.playlist.render(this.store);
@@ -338,10 +374,21 @@ export class ClientApplication {
     try {
       do {
         this.refreshAgain = false;
-        const [tracks, storage] = await Promise.all([this.api.tracks(), this.api.storage()]);
+        const [tracks, storage, playlists] = await Promise.all([
+          this.api.tracks(),
+          this.api.storage(),
+          this.api.playlists(),
+        ]);
         if (this.disposed) return;
         this.store.tracks = tracks;
         this.store.storage = storage;
+        this.store.playlists = playlists;
+        const ready = new Set(tracks.map((track) => track.id));
+        const members = this.store.browsePlaylistId
+          ? new Set(playlists.find((p) => p.id === this.store.browsePlaylistId)?.trackIds ?? [])
+          : null;
+        for (const id of this.store.selectedTracks)
+          if (!ready.has(id) || (members && !members.has(id))) this.store.selectedTracks.delete(id);
         this.playlist.render(this.store);
         this.playlist.storage(storage);
         if (this.dialog.track && !tracks.some((t) => t.id === this.dialog.track?.id)) {
@@ -359,6 +406,64 @@ export class ClientApplication {
       } else this.shell.toast((e as Error).message);
     } finally {
       this.refreshRunning = false;
+    }
+  }
+  private openPlaylistDialog(rename = false): void {
+    const playlist = this.store.playlists.find((p) => p.id === this.store.browsePlaylistId);
+    if (rename && !playlist) return;
+    this.editingPlaylistId = rename ? playlist!.id : null;
+    element('playlist-dialog-title').textContent = rename ? '修改歌单名称' : '创建歌单';
+    element<HTMLInputElement>('playlist-name').value = rename ? playlist!.name : '';
+    element('playlist-error').textContent = '';
+    element<HTMLDialogElement>('playlist-dialog').showModal();
+  }
+  private async savePlaylist(): Promise<void> {
+    const button = element<HTMLButtonElement>('playlist-save');
+    button.disabled = true;
+    const editingId = this.editingPlaylistId;
+    try {
+      const { playlist } = await this.api.request<{ playlist: Playlist }>(
+        editingId ? `/playlists/${editingId}` : '/playlists',
+        editingId ? 'PATCH' : 'POST',
+        { name: element<HTMLInputElement>('playlist-name').value },
+      );
+      this.store.browsePlaylistId = playlist.id;
+      this.store.selectedTracks.clear();
+      element<HTMLDialogElement>('playlist-dialog').close();
+      await this.refresh();
+      this.shell.toast(editingId ? '歌单名称已更新' : '歌单已创建，可从全部歌曲中批量加入音乐');
+    } catch (e) {
+      element('playlist-error').textContent = (e as Error).message;
+    } finally {
+      button.disabled = false;
+    }
+  }
+  private async changePlaylistTracks(operation: 'add' | 'remove'): Promise<void> {
+    if (this.store.bulkBusy) return;
+    const id =
+      operation === 'add'
+        ? element<HTMLSelectElement>('target-playlist').value
+        : this.store.browsePlaylistId;
+    if (!id || !this.store.selectedTracks.size) return;
+    if (this.store.selectedTracks.size > 1000) {
+      this.shell.toast('每次最多管理 1000 首歌曲，请减少勾选数量');
+      return;
+    }
+    this.store.bulkBusy = true;
+    this.playlist.render(this.store);
+    try {
+      await this.api.request(`/playlists/${id}/tracks`, 'POST', {
+        operation,
+        trackIds: [...this.store.selectedTracks],
+      });
+      this.store.selectedTracks.clear();
+      await this.refresh();
+      this.shell.toast(operation === 'add' ? '已加入歌单' : '已从歌单移出，音乐文件仍保留');
+    } catch (e) {
+      this.shell.toast((e as Error).message);
+    } finally {
+      this.store.bulkBusy = false;
+      this.playlist.render(this.store);
     }
   }
   private async confirmDelete(): Promise<void> {

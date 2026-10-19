@@ -23,8 +23,9 @@ await build({
 await copyFile('src/client/index.html', 'dist/public/index.html');
 await cp('src/client/styles', 'dist/public/styles', { recursive: true });
 await build({
-  entryPoints: ['tests/sync.test.ts'],
-  outfile: 'dist/tests/sync.test.mjs',
+  entryPoints: ['tests/sync.test.ts', 'tests/playback.test.ts'],
+  outdir: 'dist/tests',
+  outExtension: { '.js': '.mjs' },
   bundle: true,
   platform: 'node',
   target: 'node24',
