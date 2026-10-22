@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#0D0524" />
-    <title>同听房 · 五席同听</title>
+    <title>外北陆音乐热线</title>
     <link rel="stylesheet" href="/styles/tokens.css" />
     <link rel="stylesheet" href="/styles/layout.css" />
     <link rel="stylesheet" href="/styles/components.css" />
@@ -16,7 +16,7 @@
       <section id="login-screen" class="login-screen">
         <div class="brand">
           <span class="eyebrow">LISTEN TOGETHER · 5 SEATS</span>
-          <h1>同听<span>房</span><b>♪</b></h1>
+          <h1>外北陆<span>音乐热线</span></h1>
           <p>最多五人在线，同一首歌，同一个进度。</p>
           <div class="brand-grid" aria-hidden="true"></div>
         </div>
@@ -47,7 +47,7 @@
       </section>
       <section id="room-screen" hidden>
         <header class="room-header">
-          <div class="wordmark">同听房<span class="dot"></span></div>
+          <div class="wordmark">外北陆音乐热线<span class="dot"></span></div>
           <div class="header-right">
             <div class="online-members">
               <span class="presence-label">在线</span>
@@ -92,14 +92,12 @@
                 </select>
                 <button id="create-playlist">新建歌单</button>
                 <button id="rename-playlist" disabled>改名</button>
-              </div>
-              <p id="playlist-creator" class="hint"></p>
-              <div class="playlist-controls">
-                <p id="active-playlist-label" class="hint">播放范围：全部歌曲</p>
                 <button id="activate-playlist" title="当前歌曲继续播放，下次切歌使用此歌单">
                   设为播放歌单
                 </button>
               </div>
+              <p id="playlist-creator" class="hint"></p>
+              <p id="active-playlist-label" class="hint">播放范围：全部歌曲</p>
             </div>
             <label class="search-field"
               ><span class="sr-only">搜索歌曲或歌手</span
@@ -129,7 +127,7 @@
             </div>
             <div class="record-art" aria-hidden="true">
               <div class="record-disc">
-                <span>同<br />听</span>
+                <span>热<br />线</span>
               </div>
               <div class="art-label">FIVE SEATS / ONE SONG</div>
             </div>
@@ -156,7 +154,6 @@
               ><button id="next" class="round" aria-label="下一首">❯❯</button>
             </div>
             <div class="modes">
-              <span class="eyebrow">循环模式</span>
               <div>
                 <button id="repeat-mode" aria-pressed="true">↻ 单曲循环</button
                 ><button id="shuffle-mode" aria-pressed="false">⤨ 随机播放</button>
@@ -169,7 +166,6 @@
                 >80%</span
               ></label
             >
-            <p class="hint player-hint">所有人都可以控制播放 · 音量只影响自己</p>
           </section>
         </div>
         <nav class="mobile-tabs" aria-label="房间页面">

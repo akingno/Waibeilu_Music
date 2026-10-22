@@ -27,7 +27,7 @@ export class PlaylistView {
     element('track-count').textContent = `${filtered.length} 首`;
     element('playlist-creator').textContent = playlist
       ? `创建者：${playlist.creator}`
-      : '全部已上传歌曲 · 所有人共享';
+      : '全部已上传歌曲';
     element('active-playlist-label').textContent = `播放范围：${active?.name ?? '全部歌曲'}`;
     const options = [{ id: '', name: '全部歌曲' }, ...store.playlists];
     for (const id of ['browse-playlist', 'target-playlist']) {

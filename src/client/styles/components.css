@@ -27,7 +27,6 @@ select:focus-visible {
   padding: 0 0 0 14px;
   margin: 0 0 20px;
 }
-.playlist-controls,
 .bulk-controls {
   display: flex;
   align-items: center;
@@ -35,20 +34,38 @@ select:focus-visible {
   gap: 8px;
 }
 .playlist-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  align-items: center;
+  gap: 6px;
   margin: 8px 0;
 }
 .playlist-controls select {
-  flex: 1 1 140px;
-  width: 140px;
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
 }
-.playlist-controls p {
-  flex: 1 1 160px;
+.playlist-manager > p {
   overflow-wrap: anywhere;
+}
+.playlist-controls button {
+  white-space: nowrap;
 }
 .playlist-controls button,
 .bulk-controls button {
   font-size: 12px;
   padding: 8px 10px;
+}
+.playlist-controls button {
+  padding-inline: 8px;
+}
+@media (max-width: 359px) {
+  .playlist-controls {
+    grid-template-columns: auto auto 1fr;
+  }
+  .playlist-controls select {
+    grid-column: 1 / -1;
+  }
 }
 .bulk-controls {
   padding-bottom: 14px;
@@ -485,7 +502,6 @@ select:focus-visible {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 10px;
 }
 .modes button {
   font-size: 12px;
@@ -508,10 +524,6 @@ select:focus-visible {
 .volume input {
   flex: 1;
   min-width: 50px;
-}
-.player-hint {
-  text-align: center;
-  margin: 16px 0;
 }
 .danger {
   background: var(--pink);

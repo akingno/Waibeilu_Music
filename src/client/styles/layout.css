@@ -23,6 +23,7 @@
   margin: 14px 0;
 }
 .brand h1 span {
+  display: block;
   color: var(--cyan);
 }
 .brand h1 b {
