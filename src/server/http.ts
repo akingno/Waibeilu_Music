@@ -263,9 +263,11 @@ export function createHandler(
       const allowed: Record<string, string> = {
         '/': 'index.html',
         '/app.js': 'app.js',
+        '/theme.js': 'theme.js',
         '/styles/tokens.css': 'styles/tokens.css',
         '/styles/layout.css': 'styles/layout.css',
         '/styles/components.css': 'styles/components.css',
+        '/styles/themes.css': 'styles/themes.css',
       };
       if (!['GET', 'HEAD'].includes(method) || !allowed[path])
         throw new AppError('NOT_FOUND', '页面不存在', 404);

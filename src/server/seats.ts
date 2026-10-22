@@ -46,6 +46,11 @@ export class SeatRegistry {
     this.leases.delete(sessionId);
     this.names.delete(sessionId);
   }
+  releaseConnection(sessionId: string, connectionId: string): boolean {
+    if (this.leases.get(sessionId)?.connectionId !== connectionId) return false;
+    this.release(sessionId);
+    return true;
+  }
   rename(sessionId: string, nickname: string): void {
     if (this.leases.has(sessionId)) this.names.set(sessionId, nickname);
   }

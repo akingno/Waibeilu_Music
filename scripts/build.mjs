@@ -21,6 +21,14 @@ await build({
   sourcemap: true,
 });
 await copyFile('src/client/index.html', 'dist/public/index.html');
+await build({
+  entryPoints: ['src/client/theme.ts'],
+  outfile: 'dist/public/theme.js',
+  bundle: true,
+  platform: 'browser',
+  target: 'chrome120',
+  format: 'iife',
+});
 await cp('src/client/styles', 'dist/public/styles', { recursive: true });
 await build({
   entryPoints: ['tests/sync.test.ts', 'tests/playback.test.ts'],

@@ -89,10 +89,12 @@ export class RoomConnection {
     );
     this.socket = socket;
     socket.onopen = () => {
+      if (this.socket !== socket) return;
       this.retry = 0;
       this.onStatus(true);
     };
     socket.onmessage = (event) => {
+      if (this.socket !== socket) return;
       try {
         this.onMessage(JSON.parse(event.data));
       } catch (e) {
@@ -100,6 +102,7 @@ export class RoomConnection {
       }
     };
     socket.onclose = (event) => {
+      if (this.socket !== socket) return;
       this.onStatus(false);
       if (event.code === 4001 || event.code === 4003) {
         this.stopped = true;
@@ -120,6 +123,9 @@ export class RoomConnection {
   disconnect(): void {
     this.stopped = true;
     clearTimeout(this.timer);
-    this.socket?.close();
+    const socket = this.socket;
+    this.socket = undefined;
+    socket?.close();
+    this.onStatus(false);
   }
 }

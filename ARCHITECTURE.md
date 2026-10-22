@@ -34,7 +34,8 @@ Node.js 24+、原生 HTTP、ws、busboy、music-metadata、内置 SQLite；前�
 | src/client/views.ts | PlaylistView、PlayerView、DeleteDialog，纯文本渲染 |
 | src/client/main.ts | ClientApplication，事件绑定、加入、校时、刷新、上传和退出 |
 | src/client/index.html | 单页面结构与持久音频宿主 |
-| src/client/styles/*.css | tokens、layout、components，手机标签、横屏、桌面双栏 |
+| src/client/styles/*.css | tokens、layout、components、themes，手机标签、横屏、桌面双栏及可切换主题 |
+| src/client/theme.ts | 首屏前恢复浏览器主题偏好，绑定顶部切换按钮，同源标签页同步偏好 |
 | scripts/build.mjs | 构建服务端、前端、同步和播放顺序算法测试包 |
 | scripts/backup.mjs | 停机后 SQLite 一致性备份与音频复制 |
 | deploy/* | systemd 和 HTTP Nginx 配置 |
@@ -51,7 +52,7 @@ RoomState 增加 `playlistId`（null 表示全部歌曲）和 `nextTrackId`（�
 
 SQLite 自动新增 `playlists(id, data)` 表，JSON 保存名称、创建时昵称、时间和去重后的 trackIds；旧数据库和旧播放快照仍可直接读取。登录成员共享管理歌单，创建者由服务端会话写入。新增 `GET/POST /api/playlists`、`PATCH /api/playlists/:id`（改名）、`POST /api/playlists/:id/tracks`（operation=add/remove，trackIds 最多 1000 个）；写入沿用 Origin/CSRF 校验和共享串行队列，增删成员后通知客户端刷新，移除待播成员同时清空待播状态。全局删除及启动清理缺失文件时同步移除成员关系，单纯移出歌单不删除文件。
 
-自然结束与最后一人离开由每秒维护任务检查，并通过同一队列处理；这样无需挂在客户端 ended 事件，也没有旧曲结束定时器误触发的问题。WS 每秒推送轻量房间快照，每二十秒心跳。每十秒保存位置，异常退出可能回退少量进度。重启新 epoch 并恢复暂停。
+自然结束由每秒维护任务检查，并通过同一队列处理；这样无需挂在客户端 ended 事件，也没有旧曲结束定时器误触发的问题。WS 每秒推送轻量房间快照，每十秒 ping；下一次心跳仍未收到 pong 则终止连接，通常约 10–20 秒发现失联。连接关闭立即按 sessionId + connectionId 释放所属席位并广播名单，再通过队列检查空房暂停；旧连接关闭不能释放已接管的新席位。每十秒保存位置，异常退出可能回退少量进度。重启新 epoch 并恢复暂停。
 
 上传使用 Busboy 单文件 multipart + X-File-Size，服务端流式计算实际长度和哈希。先原子预留容量，写入临时目录，验证 MP3 帧或 Ogg 单音轨页链与 CRC 及 music-metadata 可识别时长，提取歌名/歌手，再移动文件并同步提交数据库。无需 ffprobe 或转码程序。
 

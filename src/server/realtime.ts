@@ -20,6 +20,7 @@ export class RoomGateway {
   private wss = new WebSocketServer({ noServer: true, maxPayload: 8192 });
   private clients = new Map<string, Client>();
   private app!: MusicApplication;
+  private closing = false;
   constructor(
     server: Server,
     private auth: AuthService,
@@ -64,6 +65,10 @@ export class RoomGateway {
     });
     socket.on('close', () => {
       this.clients.delete(c.id);
+      if (this.seats.releaseConnection(c.session.id, c.id) && !this.closing) {
+        this.broadcast();
+        void this.app.tick().catch(console.error);
+      }
     });
     socket.on('message', (data) => {
       void this.receive(c, data.toString());
@@ -113,7 +118,9 @@ export class RoomGateway {
             const previous = this.clients.get(current.connectionId);
             // A reload reconnects the same session without competing with a live tab.
             if (!previous || previous.socket.readyState !== WebSocket.OPEN) takeover = true;
-          } catch { /* No existing live lease. */ }
+          } catch {
+            /* No existing live lease. */
+          }
           const { lease, replaced } = this.seats.join(c.session, c.id, takeover);
           if (replaced) {
             const old = this.clients.get(replaced);
@@ -174,6 +181,7 @@ export class RoomGateway {
   }
   heartbeat(): void {
     for (const c of this.clients.values()) {
+      if (c.socket.readyState !== WebSocket.OPEN) continue;
       if (!c.alive) {
         c.socket.terminate();
         continue;
@@ -187,6 +195,7 @@ export class RoomGateway {
       if (c.session.id === id) c.socket.close(4001, 'Logged out');
   }
   close(): void {
+    this.closing = true;
     for (const c of this.clients.values()) c.socket.terminate();
     this.wss.close();
   }

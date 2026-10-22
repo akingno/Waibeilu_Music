@@ -45,7 +45,7 @@ export async function createServer(config: AppConfig) {
           void app.tick().catch(console.error);
         }, 1000),
       );
-      timers.push(setInterval(() => gateway.heartbeat(), 20000));
+      timers.push(setInterval(() => gateway.heartbeat(), 10000));
       timers.push(
         setInterval(() => {
           try {

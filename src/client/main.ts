@@ -41,6 +41,11 @@ export class ClientApplication {
   private intervals: number[] = [];
   private editingPlaylistId: string | null = null;
   async mount(): Promise<void> {
+    window.addEventListener('pagehide', () => this.connection.disconnect());
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted && !this.disposed && element('login-screen').hidden)
+        this.connection.connect();
+    });
     element<HTMLInputElement>('upload-input').accept = AUDIO_FILE_ACCEPT;
     this.shell.tab('playlist');
     element<HTMLFormElement>('login-form').onsubmit = (e) => {
